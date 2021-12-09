@@ -1,0 +1,7 @@
+apiVersion: apps.autodep.com/v1alpha1
+kind: Autodep
+metadata:
+  name: autodep-sample
+spec:
+  # Add fields here
+  foo: bar

@@ -1,0 +1,20 @@
+# permissions for end users to view autodeps.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: autodep-viewer-role
+rules:
+- apiGroups:
+  - apps.autodep.com
+  resources:
+  - autodeps
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - apps.autodep.com
+  resources:
+  - autodeps/status
+  verbs:
+  - get

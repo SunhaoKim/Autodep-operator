@@ -1,0 +1,16 @@
+domain: autodep.com
+layout:
+- go.kubebuilder.io/v3
+projectName: init-rollout-operator
+repo: init_rollout_operator
+resources:
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: autodep.com
+  group: apps
+  kind: Autodep
+  path: init_rollout_operator/api/v1alpha1
+  version: v1alpha1
+version: "3"
