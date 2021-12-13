@@ -22,14 +22,19 @@ import (
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
-
 // AutodepSpec defines the desired state of Autodep
 type AutodepSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
 	// Foo is an example field of Autodep. Edit autodep_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	Depimage           string `json:"depimage,omitempty"`
+	Depname            string `json:"depname,omitempty"`
+	Depenv             string `json:"depenv,omitempty"`
+	Deptype            string `json:"deptype,omitempty"`
+	DepimagePullSecret string `json:"depimagepullsecret,omitempty"`
+	AutoDeploy         bool   `json:"autodeploy"`
+	SvcPort            int32  `json:"svcport,omitempty"`
 }
 
 // AutodepStatus defines the observed state of Autodep

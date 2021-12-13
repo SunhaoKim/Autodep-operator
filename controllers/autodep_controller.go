@@ -19,17 +19,22 @@ package controllers
 import (
 	"context"
 
+	appsv1alpha1 "init_rollout_operator/api/v1alpha1"
+	"init_rollout_operator/resources"
+
+	"github.com/go-logr/logr"
+	appsv1 "k8s.io/api/apps/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/log"
-
-	appsv1alpha1 "init_rollout_operator/api/v1alpha1"
 )
 
 // AutodepReconciler reconciles a Autodep object
 type AutodepReconciler struct {
 	client.Client
+	log    logr.Logger
 	Scheme *runtime.Scheme
 }
 
@@ -47,8 +52,26 @@ type AutodepReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.8.3/pkg/reconcile
 func (r *AutodepReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = log.FromContext(ctx)
-
+	autodep := &appsv1alpha1.Autodep{}
+	log := r.log.WithValues("this operator is auto deploy deployment and service", req.Namespace)
+	err := r.Get(ctx, req.NamespacedName, autodep)
+	if err != nil {
+		log.Error(err, "failed get autodep")
+		return ctrl.Result{}, err
+	}
+	found_deployment := &appsv1.Deployment{}
+	err = r.Get(ctx, types.NamespacedName{Name: autodep.Name, Namespace: autodep.Namespace}, found_deployment)
+	if err != nil && errors.IsNotFound(err) {
+		dep := resources.DeploymentForbackend(autodep)
+		log.Info("create deployment new", dep.Namespace, dep.Name)
+		err = r.Create(ctx, dep)
+		if err != nil {
+			log.Error(err, "failed create deployment")
+			return ctrl.Result{}, err
+		}
+		log.Info("create deployment success", dep.Name)
+		return ctrl.Result{Requeue: true}, nil
+	}
 	// your logic here
 
 	return ctrl.Result{}, nil
