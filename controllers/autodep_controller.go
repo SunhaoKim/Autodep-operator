@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 
 	appsv1alpha1 "init_rollout_operator/api/v1alpha1"
 	"init_rollout_operator/resources"
@@ -34,13 +35,13 @@ import (
 // AutodepReconciler reconciles a Autodep object
 type AutodepReconciler struct {
 	client.Client
-	log    logr.Logger
+	Log    logr.Logger
 	Scheme *runtime.Scheme
 }
 
 //+kubebuilder:rbac:groups=apps.autodep.com,resources=autodeps,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=apps.autodep.com,resources=autodeps/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=apps.autodep.com,resources=autodeps/finalizers,verbs=update
+//+kubebuilder:rbac:groups=apps.autodep.com,resources=autodeps/status,verbs=create;get;update;patch
+//+kubebuilder:rbac:groups=apps.autodep.com,resources=autodeps/finalizers,verbs=create;update
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -53,23 +54,25 @@ type AutodepReconciler struct {
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.8.3/pkg/reconcile
 func (r *AutodepReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	autodep := &appsv1alpha1.Autodep{}
-	log := r.log.WithValues("this operator is auto deploy deployment and service", req.Namespace)
+	_ = r.Log.WithValues("this operator is auto deploy deployment and service", req.NamespacedName)
+	fmt.Println("debug11111111")
 	err := r.Get(ctx, req.NamespacedName, autodep)
 	if err != nil {
-		log.Error(err, "failed get autodep")
+		r.Log.Error(err, "failed get autodep")
 		return ctrl.Result{}, err
 	}
 	found_deployment := &appsv1.Deployment{}
+	fmt.Println("debug1111111122222222222")
 	err = r.Get(ctx, types.NamespacedName{Name: autodep.Name, Namespace: autodep.Namespace}, found_deployment)
 	if err != nil && errors.IsNotFound(err) {
 		dep := resources.DeploymentForbackend(autodep)
-		log.Info("create deployment new", dep.Namespace, dep.Name)
+		r.Log.Info("create deployment new", dep.Namespace, dep.Name)
 		err = r.Create(ctx, dep)
 		if err != nil {
-			log.Error(err, "failed create deployment")
+			r.Log.Error(err, "failed create deployment")
 			return ctrl.Result{}, err
 		}
-		log.Info("create deployment success", dep.Name)
+		r.Log.Info("create deployment success", dep.Namespace, dep.Name)
 		return ctrl.Result{Requeue: true}, nil
 	}
 	// your logic here

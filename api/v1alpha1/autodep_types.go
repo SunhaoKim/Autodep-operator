@@ -33,8 +33,8 @@ type AutodepSpec struct {
 	Depenv             string `json:"depenv,omitempty"`
 	Deptype            string `json:"deptype,omitempty"`
 	DepimagePullSecret string `json:"depimagepullsecret,omitempty"`
-	AutoDeploy         bool   `json:"autodeploy"`
-	SvcPort            int32  `json:"svcport,omitempty"`
+	//AutoDeploy         bool   `json:"autodeploy"`
+	SvcPort int32 `json:"svcport,omitempty"`
 }
 
 // AutodepStatus defines the observed state of Autodep

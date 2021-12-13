@@ -4,4 +4,7 @@ metadata:
   name: autodep-sample
 spec:
   # Add fields here
-  foo: bar
+  depimage: nginx
+  depname: nginxdemotest
+  depenv: dev
+  svcport: 80
