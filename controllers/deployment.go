@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"context"
 	appsv1alpha1 "init_rollout_operator/api/v1alpha1"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -20,7 +21,23 @@ var (
 	DepimagePullPolicy string
 )
 
+func (r *AutodepReconciler) CreateDeploymentForAutodep(ctx context.Context, dep *appsv1alpha1.Autodep) error {
+	depname := getDepName(dep)
+	r.Log.Info("Create new deployment For Auto Dep", dep.Namespace, dep.Name, "Deployment Name", depname)
+	deployment, err := r.DeploymentForbackend(dep)
+	if err != err {
+		r.Log.Error(err, "Failed create autodep deployment resource", depname)
+		return err
+	}
+	err = r.Create(ctx, deployment)
+	if err != nil {
+		r.Log.Error(err, "failed create deployment %s", depname)
+		return err
+	}
+	return nil
+}
 func (r *AutodepReconciler) DeploymentForbackend(dep *appsv1alpha1.Autodep) (*appsv1.Deployment, error) {
+	depname := getDepName(dep)
 	switch dep.Spec.Depenv {
 	case "dev":
 		DepimagePullPolicy = "Always"
@@ -47,16 +64,16 @@ func (r *AutodepReconciler) DeploymentForbackend(dep *appsv1alpha1.Autodep) (*ap
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: dep.Namespace,
-			Name:      dep.Spec.Depname,
+			Name:      depname,
 			Labels: map[string]string{
-				"app": dep.Spec.Depname,
+				"app": depname,
 			},
 		},
 		Spec: appsv1.DeploymentSpec{
 			Replicas: &deprs,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
-					"app": dep.Spec.Depname,
+					"app": depname,
 				},
 			},
 			Strategy: appsv1.DeploymentStrategy{
@@ -75,7 +92,7 @@ func (r *AutodepReconciler) DeploymentForbackend(dep *appsv1alpha1.Autodep) (*ap
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
-						"app": dep.Spec.Depname,
+						"app": depname,
 					},
 				},
 				Spec: corev1.PodSpec{
@@ -87,7 +104,7 @@ func (r *AutodepReconciler) DeploymentForbackend(dep *appsv1alpha1.Autodep) (*ap
 									Value: dep.Spec.Depenv,
 								},
 							},
-							Name:            dep.Spec.Depname,
+							Name:            depname,
 							Image:           dep.Spec.Depimage,
 							ImagePullPolicy: corev1.PullPolicy(DepimagePullPolicy),
 							Ports: []corev1.ContainerPort{

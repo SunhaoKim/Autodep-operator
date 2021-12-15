@@ -18,8 +18,10 @@ package controllers
 
 import (
 	"context"
-
+	"fmt"
 	appsv1alpha1 "init_rollout_operator/api/v1alpha1"
+
+	appsv1 "k8s.io/api/apps/v1"
 
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -44,6 +46,8 @@ const (
 //+kubebuilder:rbac:groups=apps.autodep.com,resources=autodeps,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=apps.autodep.com,resources=autodeps/status,verbs=create;get;update;patch
 //+kubebuilder:rbac:groups=apps.autodep.com,resources=autodeps/finalizers,verbs=delete;update
+//+kubebuilder:rbac:groups=apps.autodep.com,,resources=deployments;statefulsets,verbs=list;watch
+// +kubebuilder:rbac:groups=apps.autodep.com,resources=pods;services;services;secrets;external,verbs=get;list;watch
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
 // TODO(user): Modify the Reconcile function to compare the state specified by
@@ -67,7 +71,6 @@ func (r *AutodepReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		r.Log.Error(err, "failed get autodep")
 		return ctrl.Result{}, err
 	}
-	dep, err := r.DeploymentForbackend(autodep)
 	if err != nil {
 		r.Log.Error(err, "failed found deployment")
 		return ctrl.Result{}, err
@@ -97,18 +100,36 @@ func (r *AutodepReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 	*/
 	//检查deployment,不存在及创建
-	err = r.Get(ctx, types.NamespacedName{Namespace: autodep.Namespace, Name: dep.Name}, dep)
-	if err != nil && errors.IsNotFound(err) {
-		r.Log.Info("deployment not found just create", dep.Namespace, dep.Name)
-		if err := r.Create(ctx, dep); err != nil {
-			r.Log.Error(err, "failed create deployment")
-			return ctrl.Result{}, err
-		}
-		r.Log.V(1).Info("create deployment success", dep.Namespace, dep.Name)
+	err = r.ensureDEPForAutodepExists(ctx, autodep)
+	if err != nil {
+		return ctrl.Result{}, err
 	}
-	// your logic here
+
 	return ctrl.Result{}, nil
 }
+
+func getDepName(autodep *appsv1alpha1.Autodep) string {
+	return fmt.Sprintf("auto-dep-%s", autodep.Name)
+}
+
+func (r *AutodepReconciler) ensureDEPForAutodepExists(ctx context.Context, autodep *appsv1alpha1.Autodep) error {
+	depname := getDepName(autodep)
+	founddeployment := &appsv1.Deployment{}
+	err := r.Get(ctx, types.NamespacedName{Namespace: autodep.Namespace, Name: depname}, founddeployment)
+	if err != nil && errors.IsNotFound(err) {
+		err = r.CreateDeploymentForAutodep(ctx, autodep)
+		if err != nil {
+			return err
+		}
+		return nil
+	} else if err != nil {
+		r.Log.Error(err, "failed get deployment for cluster")
+		return err
+	}
+	return nil
+}
+
+// your logic here
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *AutodepReconciler) SetupWithManager(mgr ctrl.Manager) error {
