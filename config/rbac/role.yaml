@@ -23,7 +23,7 @@ rules:
   resources:
   - autodeps/finalizers
   verbs:
-  - create
+  - delete
   - update
 - apiGroups:
   - apps.autodep.com

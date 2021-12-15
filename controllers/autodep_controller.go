@@ -18,18 +18,17 @@ package controllers
 
 import (
 	"context"
-	"fmt"
 
 	appsv1alpha1 "init_rollout_operator/api/v1alpha1"
 	"init_rollout_operator/resources"
 
 	"github.com/go-logr/logr"
-	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 // AutodepReconciler reconciles a Autodep object
@@ -39,10 +38,13 @@ type AutodepReconciler struct {
 	Scheme *runtime.Scheme
 }
 
+const (
+	deploymentfinalizer = "initrolloutoperator"
+)
+
 //+kubebuilder:rbac:groups=apps.autodep.com,resources=autodeps,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=apps.autodep.com,resources=autodeps/status,verbs=create;get;update;patch
-//+kubebuilder:rbac:groups=apps.autodep.com,resources=autodeps/finalizers,verbs=create;update
-
+//+kubebuilder:rbac:groups=apps.autodep.com,resources=autodeps/finalizers,verbs=delete;update
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
 // TODO(user): Modify the Reconcile function to compare the state specified by
@@ -55,28 +57,51 @@ type AutodepReconciler struct {
 func (r *AutodepReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	autodep := &appsv1alpha1.Autodep{}
 	_ = r.Log.WithValues("this operator is auto deploy deployment and service", req.NamespacedName)
-	fmt.Println("debug11111111")
+	//检查autodep对象
 	err := r.Get(ctx, req.NamespacedName, autodep)
 	if err != nil {
+		if errors.IsNotFound(err) {
+			return ctrl.Result{}, nil
+		}
+		//忽略掉 not-found 错误，它们不能通过重新排队修复（要等待新的通知）
+		//在删除一个不存在的对象时，可能会报这个错误。
 		r.Log.Error(err, "failed get autodep")
 		return ctrl.Result{}, err
 	}
-	found_deployment := &appsv1.Deployment{}
-	fmt.Println("debug1111111122222222222")
-	err = r.Get(ctx, types.NamespacedName{Name: autodep.Name, Namespace: autodep.Namespace}, found_deployment)
+	dep := resources.DeploymentForbackend(autodep)
+	//预删除逻辑
+	if autodep.ObjectMeta.DeletionTimestamp.IsZero() {
+		if !controllerutil.ContainsFinalizer(autodep, deploymentfinalizer) {
+			controllerutil.AddFinalizer(autodep, deploymentfinalizer)
+			if err := r.Update(ctx, autodep); err != nil {
+				return ctrl.Result{}, err
+			}
+		}
+	} else {
+		//将删除deployment
+		if controllerutil.ContainsFinalizer(autodep, deploymentfinalizer) {
+			if err := r.Delete(ctx, dep); err != nil {
+				return ctrl.Result{}, err
+			}
+			//对预删除逻辑进行更新
+			controllerutil.RemoveFinalizer(autodep, deploymentfinalizer)
+			if err := r.Update(ctx, autodep); err != nil {
+				return ctrl.Result{}, err
+			}
+		}
+		return ctrl.Result{}, nil
+	}
+	//检查deployment,不存在及创建
+	err = r.Get(ctx, types.NamespacedName{Namespace: autodep.Namespace, Name: dep.Name}, dep)
 	if err != nil && errors.IsNotFound(err) {
-		dep := resources.DeploymentForbackend(autodep)
-		r.Log.Info("create deployment new", dep.Namespace, dep.Name)
-		err = r.Create(ctx, dep)
-		if err != nil {
+		r.Log.Info("deployment not found just create", dep.Namespace, dep.Name)
+		if err := r.Create(ctx, dep); err != nil {
 			r.Log.Error(err, "failed create deployment")
 			return ctrl.Result{}, err
 		}
-		r.Log.Info("create deployment success", dep.Namespace, dep.Name)
-		return ctrl.Result{Requeue: true}, nil
+		r.Log.V(1).Info("create deployment success", dep.Namespace, dep.Name)
 	}
 	// your logic here
-
 	return ctrl.Result{}, nil
 }
 

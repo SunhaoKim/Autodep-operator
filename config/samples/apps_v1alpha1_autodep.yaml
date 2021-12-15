@@ -1,10 +1,11 @@
 apiVersion: apps.autodep.com/v1alpha1
 kind: Autodep
 metadata:
-  name: autodep-sample
+  name: autodep-tesastaaaaa
+  namespace: test
 spec:
   # Add fields here
   depimage: nginx
-  depname: nginxdemotest
+  depname: ngiaaaassaaest
   depenv: dev
   svcport: 80
