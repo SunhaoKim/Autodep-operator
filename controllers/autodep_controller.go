@@ -20,7 +20,6 @@ import (
 	"context"
 
 	appsv1alpha1 "init_rollout_operator/api/v1alpha1"
-	"init_rollout_operator/resources"
 
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -28,7 +27,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 // AutodepReconciler reconciles a Autodep object
@@ -38,10 +36,11 @@ type AutodepReconciler struct {
 	Scheme *runtime.Scheme
 }
 
+/*
 const (
 	deploymentfinalizer = "initrolloutoperator"
 )
-
+*/
 //+kubebuilder:rbac:groups=apps.autodep.com,resources=autodeps,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=apps.autodep.com,resources=autodeps/status,verbs=create;get;update;patch
 //+kubebuilder:rbac:groups=apps.autodep.com,resources=autodeps/finalizers,verbs=delete;update
@@ -68,9 +67,14 @@ func (r *AutodepReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		r.Log.Error(err, "failed get autodep")
 		return ctrl.Result{}, err
 	}
-	dep := resources.DeploymentForbackend(autodep)
-	//预删除逻辑
-	if autodep.ObjectMeta.DeletionTimestamp.IsZero() {
+	dep, err := r.DeploymentForbackend(autodep)
+	if err != nil {
+		r.Log.Error(err, "failed found deployment")
+		return ctrl.Result{}, err
+	}
+
+	//预删除逻辑实现 现阶段尚未用到 采用属主方式删除，如果有调用外层资源删除情况 定义方法 在删除
+	/*if autodep.ObjectMeta.DeletionTimestamp.IsZero() {
 		if !controllerutil.ContainsFinalizer(autodep, deploymentfinalizer) {
 			controllerutil.AddFinalizer(autodep, deploymentfinalizer)
 			if err := r.Update(ctx, autodep); err != nil {
@@ -91,6 +95,7 @@ func (r *AutodepReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		}
 		return ctrl.Result{}, nil
 	}
+	*/
 	//检查deployment,不存在及创建
 	err = r.Get(ctx, types.NamespacedName{Namespace: autodep.Namespace, Name: dep.Name}, dep)
 	if err != nil && errors.IsNotFound(err) {

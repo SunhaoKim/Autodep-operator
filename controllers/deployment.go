@@ -1,4 +1,4 @@
-package resources
+package controllers
 
 import (
 	appsv1alpha1 "init_rollout_operator/api/v1alpha1"
@@ -8,6 +8,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 var (
@@ -19,7 +20,7 @@ var (
 	DepimagePullPolicy string
 )
 
-func DeploymentForbackend(dep *appsv1alpha1.Autodep) *appsv1.Deployment {
+func (r *AutodepReconciler) DeploymentForbackend(dep *appsv1alpha1.Autodep) (*appsv1.Deployment, error) {
 	switch dep.Spec.Depenv {
 	case "dev":
 		DepimagePullPolicy = "Always"
@@ -121,5 +122,8 @@ func DeploymentForbackend(dep *appsv1alpha1.Autodep) *appsv1.Deployment {
 			},
 		},
 	}
-	return deployment
+	if err := controllerutil.SetControllerReference(dep, deployment, r.Scheme); err != nil {
+		return nil, err
+	}
+	return deployment, nil
 }
