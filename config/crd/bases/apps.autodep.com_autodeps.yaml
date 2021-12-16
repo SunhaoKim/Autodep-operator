@@ -47,8 +47,6 @@ spec:
                 type: string
               depimagepullsecret:
                 type: string
-              depname:
-                type: string
               deptype:
                 type: string
               svcport:

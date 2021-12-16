@@ -29,7 +29,6 @@ type AutodepSpec struct {
 
 	// Foo is an example field of Autodep. Edit autodep_types.go to remove/update
 	Depimage           string `json:"depimage,omitempty"`
-	Depname            string `json:"depname,omitempty"`
 	Depenv             string `json:"depenv,omitempty"`
 	Deptype            string `json:"deptype,omitempty"`
 	DepimagePullSecret string `json:"depimagepullsecret,omitempty"`

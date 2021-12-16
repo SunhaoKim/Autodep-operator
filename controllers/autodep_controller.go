@@ -71,11 +71,6 @@ func (r *AutodepReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		r.Log.Error(err, "failed get autodep")
 		return ctrl.Result{}, err
 	}
-	if err != nil {
-		r.Log.Error(err, "failed found deployment")
-		return ctrl.Result{}, err
-	}
-
 	//预删除逻辑实现 现阶段尚未用到 采用属主方式删除，如果有调用外层资源删除情况 定义方法 在删除
 	/*if autodep.ObjectMeta.DeletionTimestamp.IsZero() {
 		if !controllerutil.ContainsFinalizer(autodep, deploymentfinalizer) {

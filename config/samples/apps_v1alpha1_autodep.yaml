@@ -1,11 +1,10 @@
 apiVersion: apps.autodep.com/v1alpha1
 kind: Autodep
 metadata:
-  name: autodep-tesataa
+  name: autodepa-tesataaa
   namespace: test
 spec:
   # Add fields here
   depimage: nginx:1.17.0
-  depname: ngiaaaassaaaest
   depenv: dev
   svcport: 80

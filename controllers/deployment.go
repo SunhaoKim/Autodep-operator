@@ -25,7 +25,7 @@ func (r *AutodepReconciler) CreateDeploymentForAutodep(ctx context.Context, dep 
 	depname := getDepName(dep)
 	r.Log.Info("Create new deployment For Auto Dep", dep.Namespace, dep.Name, "Deployment Name", depname)
 	deployment, err := r.DeploymentForbackend(dep)
-	if err != err {
+	if err != nil {
 		r.Log.Error(err, "Failed create autodep deployment resource", depname)
 		return err
 	}
@@ -34,6 +34,7 @@ func (r *AutodepReconciler) CreateDeploymentForAutodep(ctx context.Context, dep 
 		r.Log.Error(err, "failed create deployment %s", depname)
 		return err
 	}
+	r.Log.Info("create autodep deployment success", dep.Namespace, depname)
 	return nil
 }
 func (r *AutodepReconciler) DeploymentForbackend(dep *appsv1alpha1.Autodep) (*appsv1.Deployment, error) {
