@@ -37,6 +37,22 @@ func (r *AutodepReconciler) CreateDeploymentForAutodep(ctx context.Context, dep 
 	r.Log.Info("create autodep deployment success", dep.Namespace, depname)
 	return nil
 }
+func (r *AutodepReconciler) UpdateDeploymentForAutodep(ctx context.Context, dep *appsv1alpha1.Autodep) error {
+	depname := getDepName(dep)
+	r.Log.Info("get deployment For Auto Dep Just update", dep.Namespace, dep.Name, "Deployment Name", depname)
+	deployment, err := r.DeploymentForbackend(dep)
+	if err != nil {
+		r.Log.Error(err, "Failed update autodep deployment resource", depname)
+		return err
+	}
+	err = r.Update(ctx, deployment)
+	if err != nil {
+		r.Log.Error(err, "failed update deployment %s", depname)
+		return err
+	}
+	r.Log.Info("update autodep deployment success", dep.Namespace, depname)
+	return nil
+}
 func (r *AutodepReconciler) DeploymentForbackend(dep *appsv1alpha1.Autodep) (*appsv1.Deployment, error) {
 	depname := getDepName(dep)
 	switch dep.Spec.Depenv {

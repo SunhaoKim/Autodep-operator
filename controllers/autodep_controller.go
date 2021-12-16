@@ -63,11 +63,11 @@ func (r *AutodepReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	//检查autodep对象
 	err := r.Get(ctx, req.NamespacedName, autodep)
 	if err != nil {
+		//忽略掉 not-found 错误，它们不能通过重新排队修复（要等待新的通知）
+		//在删除一个不存在的对象时，可能会报这个错误。kub
 		if errors.IsNotFound(err) {
 			return ctrl.Result{}, nil
 		}
-		//忽略掉 not-found 错误，它们不能通过重新排队修复（要等待新的通知）
-		//在删除一个不存在的对象时，可能会报这个错误。
 		r.Log.Error(err, "failed get autodep")
 		return ctrl.Result{}, err
 	}
@@ -118,7 +118,13 @@ func (r *AutodepReconciler) ensureDEPForAutodepExists(ctx context.Context, autod
 		}
 		return nil
 	} else if err != nil {
-		r.Log.Error(err, "failed get deployment for cluster")
+		r.Log.Error(err, "failed get deployment for autodep")
+		return err
+	}
+	// get deployment lets update
+	err = r.UpdateDeploymentForAutodep(ctx, autodep)
+	if err != nil {
+		r.Log.Error(err, "failed update deployment for autodep")
 		return err
 	}
 	return nil

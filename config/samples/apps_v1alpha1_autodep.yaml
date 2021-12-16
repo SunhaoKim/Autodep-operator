@@ -6,5 +6,5 @@ metadata:
 spec:
   # Add fields here
   depimage: nginx:1.17.0
-  depenv: dev
+  depenv: prod
   svcport: 80
