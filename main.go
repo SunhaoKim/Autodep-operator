@@ -32,7 +32,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	appsv1alpha1 "init_rollout_operator/api/v1alpha1"
-	"init_rollout_operator/controllers"
+	autodep "init_rollout_operator/controllers/autodep"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -78,9 +78,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = (&controllers.AutodepReconciler{
+	if err = (&autodep.AutodepReconciler{
 		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("autoops"),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Autodep")

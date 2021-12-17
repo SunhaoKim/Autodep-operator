@@ -14,16 +14,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controllers
+package autodep
 
 import (
 	"context"
-	"fmt"
 	appsv1alpha1 "init_rollout_operator/api/v1alpha1"
 
-	appsv1 "k8s.io/api/apps/v1"
+	log "github.com/sirupsen/logrus"
 
-	"github.com/go-logr/logr"
+	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -34,7 +33,6 @@ import (
 // AutodepReconciler reconciles a Autodep object
 type AutodepReconciler struct {
 	client.Client
-	Log    logr.Logger
 	Scheme *runtime.Scheme
 }
 
@@ -59,7 +57,6 @@ const (
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.8.3/pkg/reconcile
 func (r *AutodepReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	autodep := &appsv1alpha1.Autodep{}
-	_ = r.Log.WithValues("this operator is auto deploy deployment and service", req.NamespacedName)
 	//检查autodep对象
 	err := r.Get(ctx, req.NamespacedName, autodep)
 	if err != nil {
@@ -68,7 +65,7 @@ func (r *AutodepReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		if errors.IsNotFound(err) {
 			return ctrl.Result{}, nil
 		}
-		r.Log.Error(err, "failed get autodep")
+		log.Error(err, "failed get autodep")
 		return ctrl.Result{}, err
 	}
 	//预删除逻辑实现 现阶段尚未用到 采用属主方式删除，如果有调用外层资源删除情况 定义方法 在删除
@@ -103,12 +100,8 @@ func (r *AutodepReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	return ctrl.Result{}, nil
 }
 
-func getDepName(autodep *appsv1alpha1.Autodep) string {
-	return fmt.Sprintf("auto-dep-%s", autodep.Name)
-}
-
 func (r *AutodepReconciler) ensureDEPForAutodepExists(ctx context.Context, autodep *appsv1alpha1.Autodep) error {
-	depname := getDepName(autodep)
+	depname := GetDepName(autodep)
 	founddeployment := &appsv1.Deployment{}
 	err := r.Get(ctx, types.NamespacedName{Namespace: autodep.Namespace, Name: depname}, founddeployment)
 	if err != nil && errors.IsNotFound(err) {
@@ -118,13 +111,13 @@ func (r *AutodepReconciler) ensureDEPForAutodepExists(ctx context.Context, autod
 		}
 		return nil
 	} else if err != nil {
-		r.Log.Error(err, "failed get deployment for autodep")
+		log.Error(err, "failed get deployment for autodep")
 		return err
 	}
 	// get deployment lets update
 	err = r.UpdateDeploymentForAutodep(ctx, autodep)
 	if err != nil {
-		r.Log.Error(err, "failed update deployment for autodep")
+		log.Error(err, "failed update deployment for autodep")
 		return err
 	}
 	return nil

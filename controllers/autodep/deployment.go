@@ -1,9 +1,11 @@
-package controllers
+package autodep
 
 import (
 	"context"
+	"fmt"
 	appsv1alpha1 "init_rollout_operator/api/v1alpha1"
 
+	log "github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -21,40 +23,44 @@ var (
 	DepimagePullPolicy string
 )
 
+func GetDepName(autodep *appsv1alpha1.Autodep) string {
+	return fmt.Sprintf("auto-dep-%s", autodep.Name)
+}
+
 func (r *AutodepReconciler) CreateDeploymentForAutodep(ctx context.Context, dep *appsv1alpha1.Autodep) error {
-	depname := getDepName(dep)
-	r.Log.Info("Create new deployment For Auto Dep", dep.Namespace, dep.Name, "Deployment Name", depname)
+	depname := GetDepName(dep)
+	log.WithField("deployment name", depname).WithField("Namespace", dep.Namespace).Info("Create new deployment For Auto Dep Namespace")
 	deployment, err := r.DeploymentForbackend(dep)
 	if err != nil {
-		r.Log.Error(err, "Failed create autodep deployment resource", depname)
+		log.WithField("deployment name", depname).Error(err, "Failed create autodep deployment resource")
 		return err
 	}
 	err = r.Create(ctx, deployment)
 	if err != nil {
-		r.Log.Error(err, "failed create deployment %s", depname)
+		log.WithField("deployment name", depname).Error(err, "failed create deployment ")
 		return err
 	}
-	r.Log.Info("create autodep deployment success", dep.Namespace, depname)
+	log.WithField("deployment name", depname).WithField("Namespace", dep.Namespace).Info("create autodep deployment  success Namespace")
 	return nil
 }
 func (r *AutodepReconciler) UpdateDeploymentForAutodep(ctx context.Context, dep *appsv1alpha1.Autodep) error {
-	depname := getDepName(dep)
-	r.Log.Info("get deployment For Auto Dep Just update", dep.Namespace, dep.Name, "Deployment Name", depname)
+	depname := GetDepName(dep)
+	log.WithField("deployment name", depname).WithField("Namespace", dep.Namespace).Info("get deployment  For Auto Dep Just update Namespace ")
 	deployment, err := r.DeploymentForbackend(dep)
 	if err != nil {
-		r.Log.Error(err, "Failed update autodep deployment resource", depname)
+		log.WithField("deployment name", depname).Error(err, "Failed update autodep deployment  resource")
 		return err
 	}
 	err = r.Update(ctx, deployment)
 	if err != nil {
-		r.Log.Error(err, "failed update deployment %s", depname)
+		log.WithField("deployment name", depname).Error(err, "failed update deployment ")
 		return err
 	}
-	r.Log.Info("update autodep deployment success", dep.Namespace, depname)
+	log.WithField("deployment name", depname).WithField("Namespace", dep.Namespace).Info("update autodep deployment  success Namespace ")
 	return nil
 }
 func (r *AutodepReconciler) DeploymentForbackend(dep *appsv1alpha1.Autodep) (*appsv1.Deployment, error) {
-	depname := getDepName(dep)
+	depname := GetDepName(dep)
 	switch dep.Spec.Depenv {
 	case "dev":
 		DepimagePullPolicy = "Always"
