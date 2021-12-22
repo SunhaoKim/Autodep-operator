@@ -28,12 +28,12 @@ type AutodepSpec struct {
 	// Important: Run "make" to regenerate code after modifying this file
 
 	// Foo is an example field of Autodep. Edit autodep_types.go to remove/update
-	Depimage           string `json:"depimage,omitempty"`
-	Depenv             string `json:"depenv,omitempty"`
-	Deptype            string `json:"deptype,omitempty"`
+	Depimage           string `json:"depimage"`
+	Depenv             string `json:"depenv"`
+	Deptype            string `json:"deptype"`
 	DepimagePullSecret string `json:"depimagepullsecret,omitempty"`
 	//AutoDeploy         bool   `json:"autodeploy"`
-	SvcPort int32 `json:"svcport,omitempty"`
+	SvcPort int32 `json:"svcport"`
 }
 
 // AutodepStatus defines the observed state of Autodep

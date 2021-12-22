@@ -53,6 +53,11 @@ spec:
                 description: AutoDeploy         bool   `json:"autodeploy"`
                 format: int32
                 type: integer
+            required:
+            - depenv
+            - depimage
+            - deptype
+            - svcport
             type: object
           status:
             description: AutodepStatus defines the observed state of Autodep

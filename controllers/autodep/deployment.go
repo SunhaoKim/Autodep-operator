@@ -2,7 +2,7 @@ package autodep
 
 import (
 	"context"
-	"fmt"
+
 	appsv1alpha1 "init_rollout_operator/api/v1alpha1"
 
 	log "github.com/sirupsen/logrus"
@@ -23,44 +23,42 @@ var (
 	DepimagePullPolicy string
 )
 
-func GetDepName(autodep *appsv1alpha1.Autodep) string {
-	return fmt.Sprintf("auto-dep-%s", autodep.Name)
-}
-
-func (r *AutodepReconciler) CreateDeploymentForAutodep(ctx context.Context, dep *appsv1alpha1.Autodep) error {
-	depname := GetDepName(dep)
-	log.WithField("deployment name", depname).WithField("Namespace", dep.Namespace).Info("Create new deployment For Auto Dep Namespace")
+func (r *AutodepReconciler) CreateBackendDeployment(ctx context.Context, dep *appsv1alpha1.Autodep) error {
+	depname := GetBackendName(dep)
+	log.WithField("deployment name", depname).WithField("Namespace", dep.Namespace).Info("Create new  backend deployment")
 	deployment, err := r.DeploymentForbackend(dep)
 	if err != nil {
-		log.WithField("deployment name", depname).Error(err, "Failed create autodep deployment resource")
+		log.WithField("deployment name", depname).Error(err, "Failed get backend deployment resource")
 		return err
 	}
 	err = r.Create(ctx, deployment)
 	if err != nil {
-		log.WithField("deployment name", depname).Error(err, "failed create deployment ")
+		log.WithField("deployment name", depname).Error(err, "failed create backend deployment ")
 		return err
 	}
-	log.WithField("deployment name", depname).WithField("Namespace", dep.Namespace).Info("create autodep deployment  success Namespace")
+	log.WithField("deployment name", depname).WithField("Namespace", dep.Namespace).Info("create backend deployment  success")
 	return nil
 }
-func (r *AutodepReconciler) UpdateDeploymentForAutodep(ctx context.Context, dep *appsv1alpha1.Autodep) error {
-	depname := GetDepName(dep)
-	log.WithField("deployment name", depname).WithField("Namespace", dep.Namespace).Info("get deployment  For Auto Dep Just update Namespace ")
+
+func (r *AutodepReconciler) UpdateBackendDeployment(ctx context.Context, dep *appsv1alpha1.Autodep) error {
+	depname := GetBackendName(dep)
+	log.WithField("deployment name", depname).WithField("Namespace", dep.Namespace).Info("get backend deployment just update ")
 	deployment, err := r.DeploymentForbackend(dep)
 	if err != nil {
-		log.WithField("deployment name", depname).Error(err, "Failed update autodep deployment  resource")
+		log.WithField("deployment name", depname).Error(err, "Failed get backend deployment resource")
 		return err
 	}
 	err = r.Update(ctx, deployment)
 	if err != nil {
-		log.WithField("deployment name", depname).Error(err, "failed update deployment ")
+		log.WithField("deployment name", depname).Error(err, "Failed update backend deployment ")
 		return err
 	}
-	log.WithField("deployment name", depname).WithField("Namespace", dep.Namespace).Info("update autodep deployment  success Namespace ")
+	log.WithField("deployment name", depname).WithField("Namespace", dep.Namespace).Info("update backend deployment success ")
 	return nil
 }
+
 func (r *AutodepReconciler) DeploymentForbackend(dep *appsv1alpha1.Autodep) (*appsv1.Deployment, error) {
-	depname := GetDepName(dep)
+	depname := GetBackendName(dep)
 	switch dep.Spec.Depenv {
 	case "dev":
 		DepimagePullPolicy = "Always"
@@ -132,7 +130,7 @@ func (r *AutodepReconciler) DeploymentForbackend(dep *appsv1alpha1.Autodep) (*ap
 							ImagePullPolicy: corev1.PullPolicy(DepimagePullPolicy),
 							Ports: []corev1.ContainerPort{
 								{
-									Name:          "http",
+									Name:          "backend",
 									ContainerPort: dep.Spec.SvcPort,
 									Protocol:      corev1.ProtocolTCP,
 								},

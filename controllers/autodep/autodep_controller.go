@@ -18,11 +18,12 @@ package autodep
 
 import (
 	"context"
+	"fmt"
 	appsv1alpha1 "init_rollout_operator/api/v1alpha1"
 
 	log "github.com/sirupsen/logrus"
-
 	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -96,16 +97,25 @@ func (r *AutodepReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-
+	err = r.ensureSVCForAutodepExists(ctx, autodep)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
 	return ctrl.Result{}, nil
+}
+func GetBackendName(autodep *appsv1alpha1.Autodep) string {
+	return fmt.Sprintf("autodep-backend-%s", autodep.Name)
 }
 
 func (r *AutodepReconciler) ensureDEPForAutodepExists(ctx context.Context, autodep *appsv1alpha1.Autodep) error {
-	depname := GetDepName(autodep)
+	depname := GetBackendName(autodep)
 	founddeployment := &appsv1.Deployment{}
 	err := r.Get(ctx, types.NamespacedName{Namespace: autodep.Namespace, Name: depname}, founddeployment)
 	if err != nil && errors.IsNotFound(err) {
-		err = r.CreateDeploymentForAutodep(ctx, autodep)
+		switch autodep.Spec.Deptype {
+		case "backend":
+			err = r.CreateBackendDeployment(ctx, autodep)
+		}
 		if err != nil {
 			return err
 		}
@@ -115,9 +125,40 @@ func (r *AutodepReconciler) ensureDEPForAutodepExists(ctx context.Context, autod
 		return err
 	}
 	// get deployment lets update
-	err = r.UpdateDeploymentForAutodep(ctx, autodep)
+	switch autodep.Spec.Deptype {
+	case "backend":
+		err = r.UpdateBackendDeployment(ctx, autodep)
+	}
 	if err != nil {
 		log.Error(err, "failed update deployment for autodep")
+		return err
+	}
+	return nil
+}
+func (r *AutodepReconciler) ensureSVCForAutodepExists(ctx context.Context, autodep *appsv1alpha1.Autodep) error {
+	svcname := GetBackendName(autodep)
+	foundservice := &corev1.Service{}
+	err := r.Get(ctx, types.NamespacedName{Namespace: autodep.Namespace, Name: svcname}, foundservice)
+	if err != nil && errors.IsNotFound(err) {
+		switch autodep.Spec.Deptype {
+		case "backend":
+			err = r.CreateBackendService(ctx, autodep)
+		}
+		if err != nil {
+			return err
+		}
+		return nil
+	} else if err != nil {
+		log.Error(err, "failed get service for autodep")
+		return err
+	}
+	// get deployment lets update
+	switch autodep.Spec.Deptype {
+	case "backend":
+		err = r.UpdateBackendService(ctx, autodep)
+	}
+	if err != nil {
+		log.Error(err, "failed update service for autodep")
 		return err
 	}
 	return nil
