@@ -1,10 +1,11 @@
 apiVersion: apps.autodep.com/v1alpha1
 kind: Autodep
 metadata:
-  name: autodepa-tesaataaa
+  name: autodepa-test
   namespace: test
 spec:
   # Add fields here
   depimage: nginx
   depenv: dev
-  svcport: 8080
+  deptype: backend
+  svcport: 80
